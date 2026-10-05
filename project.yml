@@ -1,0 +1,56 @@
+# Proyecto de Xcode descrito en texto: XcodeGen lo convierte en ExoTube.xcodeproj.
+# Así no hace falta una Mac para editar el proyecto: se genera en la Mac de GitHub Actions.
+name: ExoTube
+options:
+  bundleIdPrefix: io.github.exotube
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+targets:
+  ExoTube:
+    type: application
+    platform: iOS
+    sources: [ExoTube]
+    info:
+      path: ExoTube/Info.plist
+      properties:
+        CFBundleDisplayName: ExoTube
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        # Música con la pantalla apagada o en otra app, como en Android.
+        UIBackgroundModes: [audio]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Lo descargado se ve en la app Archivos ("En mi iPhone → ExoTube").
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UIUserInterfaceStyle: Dark
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.exotube.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+  ExoTubeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [ExoTubeTests]
+    dependencies:
+      - target: ExoTube
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  ExoTube:
+    build:
+      targets:
+        ExoTube: all
+        ExoTubeTests: [test]
+    test:
+      targets: [ExoTubeTests]

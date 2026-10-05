@@ -1,0 +1,9 @@
+# Se generan con XcodeGen y al compilar: no se guardan.
+ExoTube.xcodeproj/
+build/
+build-ios/
+Payload/
+*.ipa
+capturas/
+.DS_Store
+xcuserdata/
