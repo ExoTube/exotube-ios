@@ -19,7 +19,7 @@ jobs:
       # Un video corto de prueba (Soda Stereo, "De Música Ligera").
       VIDEO: OX-us7PEfkc
       # Los mismos enlaces de prueba que en Android (StreamSpeedBenchmark).
-      ENLACE_X: https://x.com/starwars/status/665052190608723968
+      ENLACE_X: https://x.com/StormChasingVideo/status/1575560063510810624
       ENLACE_TIKTOK: https://www.tiktok.com/@scout2015/video/6718335390845095173
     steps:
       - uses: actions/checkout@v4
@@ -93,13 +93,16 @@ jobs:
           shot 7-ajustes 15 -tab ajustes
           # TikTok, Instagram, X y Facebook pasan por yt-dlp (Python dentro de la app).
           shot 8-enlace-x 30 -tab explorar -buscar "$ENLACE_X"
-          shot 9-enlace-tiktok 30 -tab explorar -buscar "$ENLACE_TIKTOK"
-          shot 10-descargando-enlace 30 -tab biblioteca -descargar-enlace "$ENLACE_X"
+          shot 9-descargando-enlace 30 -tab biblioteca -descargar-enlace "$ENLACE_X"
           sleep 60
-          xcrun simctl io "$SIM" screenshot capturas/11-descargado-enlace.png
+          xcrun simctl io "$SIM" screenshot capturas/10-descargado-enlace.png
+          shot 11-enlace-tiktok 30 -tab explorar -buscar "$ENLACE_TIKTOK"
           # Lo descargado de verdad, para revisarlo.
           DATA=$(xcrun simctl get_app_container "$SIM" "$APP" data)
           ls -la "$DATA/Documents/ExoTube" | tee capturas/archivos.txt
+          # Lo que dijo yt-dlp en el último pedido (para entender un fallo de TikTok, X...).
+          cp "$DATA/Documents/ExoTube/.yt-dlp.log" capturas/yt-dlp.log 2>/dev/null || true
+          tail -60 capturas/yt-dlp.log 2>/dev/null || true
 
       - name: Armar ExoTube.ipa (sin firmar)
         run: |

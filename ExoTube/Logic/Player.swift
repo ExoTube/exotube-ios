@@ -142,7 +142,10 @@ final class Player: ObservableObject {
                 }
                 try Task.checkCancellation()
                 try? AVAudioSession.sharedInstance().setActive(true)
-                avPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+                // Para YouTube, la misma identificación con la que se pidió el enlace (si no, 403).
+                let asset = url.isFileURL ? AVURLAsset(url: url)
+                    : AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": StreamResolver.userAgent]])
+                avPlayer.replaceCurrentItem(with: AVPlayerItem(asset: asset))
                 if resumeAt > 0 { await avPlayer.seek(to: CMTime(seconds: resumeAt, preferredTimescale: 600)) }
                 avPlayer.play()
                 showsVideo = withImage

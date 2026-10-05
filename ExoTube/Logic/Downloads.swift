@@ -85,7 +85,7 @@ final class Downloads: ObservableObject {
     }
 
     private func downloadFromYouTube(_ video: OnlineVideo, kind: MediaFile.Kind, progress: @escaping (Double) -> Void) async throws -> MediaFile {
-        let downloader = ChunkedDownloader()
+        let downloader = ChunkedDownloader(userAgent: StreamResolver.userAgent)
         let fileName: String
         switch kind {
         case .audio:

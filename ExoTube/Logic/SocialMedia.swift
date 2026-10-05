@@ -65,7 +65,12 @@ enum PythonRuntime {
         var errorDescription: String? { message }
     }
 
+    /** El registro detallado del último pedido a yt-dlp (oculto, junto a la biblioteca). */
+    static var logFile: URL { Library.folder.appendingPathComponent(".yt-dlp.log") }
+
     static func call(_ request: [String: Any]) async throws -> Any {
+        var request = request
+        request["log_file"] = logFile.path
         let json = String(data: try JSONSerialization.data(withJSONObject: request), encoding: .utf8)!
         let answer: String = await withCheckedContinuation { done in
             queue.async { done.resume(returning: PythonBridge.call(json)) }

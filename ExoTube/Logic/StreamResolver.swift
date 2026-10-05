@@ -14,6 +14,13 @@ import YouTubeKit
  */
 enum StreamResolver {
 
+    /**
+     * YouTube solo entrega el archivo a quien se presenta igual que quien pidió el enlace.
+     * YouTubeKit lo pide como el visor de Apple Vision Pro (un Safari), así que la descarga y la
+     * reproducción usan esa misma identificación; con la de por defecto, YouTube responde 403.
+     */
+    static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
+
     struct VideoDownload {
         let video: URL
         let audio: URL

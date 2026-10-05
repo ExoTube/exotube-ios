@@ -9,6 +9,7 @@ import Foundation
 struct ChunkedDownloader {
     var session: URLSession = .shared
     var chunkSize: Int64 = 10 * 1024 * 1024
+    var userAgent: String? = nil
 
     enum Failure: LocalizedError {
         case badAnswer(Int)
@@ -24,13 +25,24 @@ struct ChunkedDownloader {
         FileManager.default.createFile(atPath: destination.path, contents: nil)
         let handle = try FileHandle(forWritingTo: destination)
         defer { try? handle.close() }
+        do {
+            try await fill(handle, from: url, progress: progress)
+        } catch {
+            // Que no quede un archivo a medias (o vacío) en la biblioteca.
+            try? handle.close()
+            try? FileManager.default.removeItem(at: destination)
+            throw error
+        }
+    }
 
+    private func fill(_ handle: FileHandle, from url: URL, progress: @escaping (Double) -> Void) async throws {
         var start: Int64 = 0
         var total: Int64?
         repeat {
             try Task.checkCancellation()
             var request = URLRequest(url: url)
             request.setValue("bytes=\(start)-\(start + chunkSize - 1)", forHTTPHeaderField: "Range")
+            if let userAgent { request.setValue(userAgent, forHTTPHeaderField: "User-Agent") }
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 206 || http.statusCode == 200 else {
                 throw Failure.badAnswer((response as? HTTPURLResponse)?.statusCode ?? 0)

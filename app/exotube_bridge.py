@@ -26,10 +26,37 @@ except ImportError:  # pragma: no cover - sin certifi fallarían las conexiones 
 
 FORMAT = 'b[ext=mp4][vcodec!=none][acodec!=none]/b[vcodec!=none][acodec!=none]/b'
 
+# Registro detallado de yt-dlp (lo indica Swift con "log_file"): sirve para saber por qué falla
+# una red sin tener el teléfono en la mano. Solo se guarda el último pedido.
+_log_path = None
+
+
+class _FileLogger:
+    def _write(self, level, message):
+        if _log_path:
+            with open(_log_path, 'a', encoding='utf-8') as f:
+                f.write('%s %s\n' % (level, message))
+
+    def debug(self, message):
+        self._write('DEBUG', message)
+
+    def info(self, message):
+        self._write('INFO', message)
+
+    def warning(self, message):
+        self._write('WARNING', message)
+
+    def error(self, message):
+        self._write('ERROR', message)
+
 
 def run(request_json):
     try:
         request = json.loads(request_json)
+        global _log_path
+        _log_path = request.get('log_file')
+        if _log_path:
+            open(_log_path, 'w').close()
         action = request.get('action')
         if action == 'version':
             import yt_dlp.version
@@ -42,7 +69,10 @@ def run(request_json):
             raise ValueError('pedido desconocido: %r' % action)
         return json.dumps({'ok': True, 'result': result})
     except Exception as error:  # se devuelve como texto: Swift lo enseña al usuario
-        return json.dumps({'ok': False, 'error': friendly(error), 'detail': traceback.format_exc()[-3000:]})
+        detail = traceback.format_exc()
+        if _log_path:
+            _FileLogger().error(detail)
+        return json.dumps({'ok': False, 'error': friendly(error), 'detail': detail[-3000:]})
 
 
 def _ydl(extra=None):
@@ -56,6 +86,8 @@ def _ydl(extra=None):
         'retries': 3,
         'cachedir': False,
     }
+    if _log_path:
+        options.update({'verbose': True, 'logger': _FileLogger()})
     options.update(extra or {})
     return yt_dlp.YoutubeDL(options)
 
