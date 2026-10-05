@@ -39,7 +39,7 @@ jobs:
           /tmp/pip-env/bin/pip install --quiet --no-deps --target app_packages yt-dlp certifi
           python3 -c "import sys; sys.path.insert(0, 'app_packages'); import yt_dlp.version as v; print('yt-dlp', v.__version__)"
 
-      - name: Diagnóstico: ¿YouTube deja descargar desde esta Mac?
+      - name: "Diagnóstico: ¿YouTube deja descargar desde esta Mac?"
         continue-on-error: true
         run: |
           # Si YouTube bloquea las Macs de GitHub (centros de datos), aquí se ve: así se sabe si un
