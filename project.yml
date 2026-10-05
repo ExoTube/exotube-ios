@@ -11,11 +11,18 @@ settings:
     MARKETING_VERSION: "0.1"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
+packages:
+  # Saca los enlaces de audio y video de YouTube dentro del teléfono (lo que hace NewPipe en Android).
+  YouTubeKit:
+    url: https://github.com/alexeichhorn/YouTubeKit
+    from: 0.4.9
 targets:
   ExoTube:
     type: application
     platform: iOS
     sources: [ExoTube]
+    dependencies:
+      - package: YouTubeKit
     info:
       path: ExoTube/Info.plist
       properties:

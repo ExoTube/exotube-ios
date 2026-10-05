@@ -25,59 +25,81 @@ enum Tab: String, CaseIterable {
         }
     }
 
-    /**
-     * La pestaña con la que abre la app. Normalmente Biblioteca; las capturas automáticas de
-     * GitHub abren cada pestaña pasando "-tab explorar" al lanzar la app.
-     */
-    static var initial: Tab {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-tab"), i + 1 < args.count, let tab = Tab(rawValue: args[i + 1]) {
-            return tab
-        }
-        return .library
-    }
+    /** Normalmente Biblioteca; las capturas automáticas abren cada pestaña con "-tab explorar". */
+    static var initial: Tab { LaunchArguments.value(after: "-tab").flatMap(Tab.init(rawValue:)) ?? .library }
 }
 
 struct RootView: View {
     @State private var tab = Tab.initial
+    @State private var showsNowPlaying = false
+    @EnvironmentObject private var player: Player
+    @EnvironmentObject private var downloads: Downloads
 
     var body: some View {
         TabView(selection: $tab) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                PlaceholderScreen(tab: tab)
-                    .tabItem { Label(tab.title, systemImage: tab.icon) }
-                    .tag(tab)
-            }
+            screen(for: .library) { LibraryScreen() }
+            screen(for: .explore) { ExploreScreen() }
+            screen(for: .playlists) { PlaylistsScreen() }
+            screen(for: .settings) { SettingsScreen() }
         }
+        .sheet(isPresented: $showsNowPlaying) { NowPlayingView() }
+        .task { runSelfTest() }
+    }
+
+    /**
+     * Pruebas de verdad, con internet, para las capturas automáticas de GitHub (no hay un iPhone
+     * físico donde probar): "-reproducir ID" abre el reproductor con ese video y "-descargar ID"
+     * lo descarga como video. En el uso normal no se pasa nada de esto.
+     */
+    private func runSelfTest() {
+        if let id = LaunchArguments.value(after: "-reproducir") {
+            player.play([.online(OnlineVideo(id: id, title: "Prueba de reproducción", channel: "ExoTube", durationSeconds: nil, views: nil))],
+                        withVideo: true)
+            showsNowPlaying = true
+        }
+        if let id = LaunchArguments.value(after: "-descargar") {
+            downloads.start(OnlineVideo(id: id, title: "Prueba de descarga", channel: "ExoTube", durationSeconds: nil, views: nil), as: .video)
+            downloads.start(OnlineVideo(id: id, title: "Prueba de descarga", channel: "ExoTube", durationSeconds: nil, views: nil), as: .audio)
+        }
+    }
+
+    /** Cada pestaña lleva debajo el mini reproductor, como en Android. */
+    private func screen<Content: View>(for tab: Tab, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .safeAreaInset(edge: .bottom) { MiniPlayer { showsNowPlaying = true } }
+            .tabItem { Label(tab.title, systemImage: tab.icon) }
+            .tag(tab)
     }
 }
 
-/** Pantalla provisional mientras se construye cada parte de la app de iPhone. */
-struct PlaceholderScreen: View {
-    let tab: Tab
+/** El encabezado de cada pestaña: el logotipo y una línea debajo. */
+struct ScreenHeader: View {
+    let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 2) {
             ExoWordmark()
-            Text(tab.title)
-                .font(.title3.weight(.semibold))
-                .foregroundColor(Exo.textSecondary)
-            Spacer()
-            HStack {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 48))
-                        .foregroundColor(Exo.green)
-                    Text("Muy pronto en iPhone")
-                        .foregroundColor(Exo.textSecondary)
-                }
-                Spacer()
-            }
-            Spacer()
+            Text(subtitle).font(.subheadline).foregroundColor(Exo.textSecondary)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Exo.black)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+}
+
+/** Una pantalla vacía con un ícono y un texto (sin descargas, sin resultados...). */
+struct EmptyState: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 44)).foregroundColor(Exo.green)
+            Text(text).multilineTextAlignment(.center).foregroundColor(Exo.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }

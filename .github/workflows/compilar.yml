@@ -1,7 +1,7 @@
 # Compila ExoTube para iPhone en una Mac de GitHub (no hace falta tener una):
 #  1. genera el proyecto de Xcode desde project.yml;
 #  2. pasa las pruebas en un iPhone simulado;
-#  3. saca capturas de cada pestaña en ese iPhone simulado;
+#  3. lo usa de verdad, con internet: busca, reproduce y descarga, y saca capturas;
 #  4. arma ExoTube.ipa SIN firmar: cada persona la firma con su propia cuenta de Apple al
 #     instalarla con AltStore o Sideloadly.
 name: Compilar
@@ -13,7 +13,11 @@ on:
 jobs:
   iphone:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
+    env:
+      APP: io.github.exotube.app
+      # Un video corto de prueba (Soda Stereo, "De Música Ligera").
+      VIDEO: OX-us7PEfkc
     steps:
       - uses: actions/checkout@v4
 
@@ -42,18 +46,31 @@ jobs:
           xcodebuild test -project ExoTube.xcodeproj -scheme ExoTube \
             -destination "id=$SIM" -derivedDataPath build -quiet
 
-      - name: Capturas del iPhone simulado
+      - name: Usar la app y sacar capturas
         run: |
           xcrun simctl boot "$SIM" || true
           xcrun simctl bootstatus "$SIM" -b
+          # Instalar tarda varios minutos la primera vez: no es que esté colgado.
           xcrun simctl install "$SIM" build/Build/Products/Debug-iphonesimulator/ExoTube.app
           mkdir -p capturas
-          for tab in biblioteca explorar playlists ajustes; do
-            xcrun simctl terminate "$SIM" io.github.exotube.app || true
-            xcrun simctl launch "$SIM" io.github.exotube.app -tab "$tab"
-            sleep 6
-            xcrun simctl io "$SIM" screenshot "capturas/$tab.png"
-          done
+          shot() {   # shot <nombre> <segundos de espera> <argumentos para la app...>
+            name=$1; wait=$2; shift 2
+            xcrun simctl terminate "$SIM" "$APP" 2>/dev/null || true
+            xcrun simctl launch "$SIM" "$APP" "$@"
+            sleep "$wait"
+            xcrun simctl io "$SIM" screenshot "capturas/$name.png"
+          }
+          shot 1-explorar 15 -tab explorar
+          shot 2-busqueda 15 -tab explorar -buscar "soda stereo"
+          shot 3-reproductor 20 -tab explorar -reproducir "$VIDEO"
+          shot 4-descargando 12 -tab biblioteca -descargar "$VIDEO"
+          sleep 90
+          xcrun simctl io "$SIM" screenshot capturas/5-descargado.png
+          shot 6-biblioteca 8 -tab biblioteca
+          shot 7-ajustes 6 -tab ajustes
+          # Lo descargado de verdad, para revisarlo.
+          DATA=$(xcrun simctl get_app_container "$SIM" "$APP" data)
+          ls -la "$DATA/Documents/ExoTube" | tee capturas/archivos.txt
 
       - name: Armar ExoTube.ipa (sin firmar)
         run: |
