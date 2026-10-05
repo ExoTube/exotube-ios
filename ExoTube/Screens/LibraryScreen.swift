@@ -9,9 +9,9 @@ struct LibraryScreen: View {
     @EnvironmentObject private var player: Player
     @State private var filter = Filter.all
     @State private var query = ""
-    @State private var toDelete: LibraryItem?
+    @State private var toDelete: MediaFile?
 
-    private var visible: [LibraryItem] {
+    private var visible: [MediaFile] {
         library.items.filter { item in
             switch filter {
             case .all: return true

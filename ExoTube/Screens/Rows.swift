@@ -69,7 +69,7 @@ struct VideoRow: View {
 
 /** Algo descargado en una lista. */
 struct LibraryRow: View {
-    let item: LibraryItem
+    let item: MediaFile
 
     var body: some View {
         HStack(spacing: 12) {

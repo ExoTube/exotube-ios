@@ -11,7 +11,7 @@ final class Downloads: ObservableObject {
         enum State: Equatable { case running, failed(String), done }
         let id: String
         let video: OnlineVideo
-        let kind: LibraryItem.Kind
+        let kind: MediaFile.Kind
         var progress: Double = 0
         var state: State = .running
     }
@@ -22,7 +22,7 @@ final class Downloads: ObservableObject {
 
     init(library: Library) { self.library = library }
 
-    func start(_ video: OnlineVideo, as kind: LibraryItem.Kind) {
+    func start(_ video: OnlineVideo, as kind: MediaFile.Kind) {
         let id = "\(video.id)-\(kind.rawValue)"
         if let job = jobs.first(where: { $0.id == id }), job.state == .running { return }
         jobs.removeAll { $0.id == id }
@@ -37,7 +37,7 @@ final class Downloads: ObservableObject {
 
     func clearFinished() { jobs.removeAll { $0.state != .running } }
 
-    private func run(id: String, video: OnlineVideo, kind: LibraryItem.Kind) async {
+    private func run(id: String, video: OnlineVideo, kind: MediaFile.Kind) async {
         // iOS pausa la app al poco de salir de ella: se pide un rato extra para terminar.
         let background = UIApplication.shared.beginBackgroundTask(withName: id)
         defer { UIApplication.shared.endBackgroundTask(background) }
@@ -66,7 +66,7 @@ final class Downloads: ObservableObject {
                 fileName = library.freeFileName(for: video.title, extension: "mp4")
                 try await MediaMuxer.merge(video: v, audio: a, into: Library.folder.appendingPathComponent(fileName))
             }
-            library.add(LibraryItem(id: fileName, title: video.title, channel: video.channel, durationSeconds: video.durationSeconds,
+            library.add(MediaFile(id: fileName, title: video.title, channel: video.channel, durationSeconds: video.durationSeconds,
                                     kind: kind, sourceID: video.id, addedAt: Date()))
             update(id) { $0.progress = 1; $0.state = .done }
         } catch is CancellationError {

@@ -5,7 +5,7 @@ import UIKit
 /** Algo que se puede reproducir: un video de YouTube o algo descargado. */
 enum PlayItem: Equatable, Identifiable {
     case online(OnlineVideo)
-    case local(LibraryItem)
+    case local(MediaFile)
 
     var id: String {
         switch self {

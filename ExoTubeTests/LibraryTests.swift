@@ -4,8 +4,8 @@ import XCTest
 /** La biblioteca, los nombres de archivo y las descargas por partes. */
 final class LibraryTests: XCTestCase {
 
-    private func item(_ id: String, kind: LibraryItem.Kind = .audio, added: TimeInterval) -> LibraryItem {
-        LibraryItem(id: id, title: id, channel: "Canal", durationSeconds: 200, kind: kind, sourceID: "abc", addedAt: Date(timeIntervalSince1970: added))
+    private func item(_ id: String, kind: MediaFile.Kind = .audio, added: TimeInterval) -> MediaFile {
+        MediaFile(id: id, title: id, channel: "Canal", durationSeconds: 200, kind: kind, sourceID: "abc", addedAt: Date(timeIntervalSince1970: added))
     }
 
     func testLoQueSeBorroDesdeArchivosDesapareceDeLaLista() {

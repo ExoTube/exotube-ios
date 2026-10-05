@@ -1,7 +1,7 @@
 import Foundation
 
 /** Una canción o video descargado. Su [id] es el nombre del archivo dentro de la carpeta. */
-struct LibraryItem: Identifiable, Codable, Hashable {
+struct MediaFile: Identifiable, Codable, Hashable {
     enum Kind: String, Codable { case audio, video }
 
     let id: String
@@ -34,7 +34,7 @@ struct LibraryItem: Identifiable, Codable, Hashable {
  */
 @MainActor
 final class Library: ObservableObject {
-    @Published private(set) var items: [LibraryItem] = []
+    @Published private(set) var items: [MediaFile] = []
 
     nonisolated static var folder: URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -48,19 +48,19 @@ final class Library: ObservableObject {
     init() { reload() }
 
     func reload() {
-        let saved = (try? JSONDecoder().decode([LibraryItem].self, from: Data(contentsOf: indexURL))) ?? []
+        let saved = (try? JSONDecoder().decode([MediaFile].self, from: Data(contentsOf: indexURL))) ?? []
         let files = (try? FileManager.default.contentsOfDirectory(atPath: Library.folder.path)) ?? []
         items = reconcile(index: saved, files: files, now: Date())
         save()
     }
 
-    func add(_ item: LibraryItem) {
+    func add(_ item: MediaFile) {
         items.removeAll { $0.id == item.id }
         items.insert(item, at: 0)
         save()
     }
 
-    func delete(_ item: LibraryItem) {
+    func delete(_ item: MediaFile) {
         try? FileManager.default.removeItem(at: item.fileURL)
         items.removeAll { $0.id == item.id }
         save()
@@ -87,14 +87,14 @@ final class Library: ObservableObject {
  * Junta el índice guardado con lo que de verdad hay en la carpeta: quita lo que ya no existe y
  * añade lo nuevo. Lo más reciente, primero.
  */
-func reconcile(index: [LibraryItem], files: [String], now: Date) -> [LibraryItem] {
+func reconcile(index: [MediaFile], files: [String], now: Date) -> [MediaFile] {
     let present = Set(files)
     var result = index.filter { present.contains($0.id) }
     let known = Set(result.map(\.id))
     for file in files where !known.contains(file) && !file.hasPrefix(".") {
-        guard let kind = LibraryItem.kind(ofFile: file) else { continue }
+        guard let kind = MediaFile.kind(ofFile: file) else { continue }
         let title = (file as NSString).deletingPathExtension
-        result.append(LibraryItem(id: file, title: title, channel: "", durationSeconds: nil, kind: kind, sourceID: nil, addedAt: now))
+        result.append(MediaFile(id: file, title: title, channel: "", durationSeconds: nil, kind: kind, sourceID: nil, addedAt: now))
     }
     return result.sorted { $0.addedAt > $1.addedAt }
 }

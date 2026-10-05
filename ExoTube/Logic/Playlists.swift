@@ -3,7 +3,7 @@ import Foundation
 struct Playlist: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
-    /** Los [LibraryItem.id] de sus canciones, en orden. */
+    /** Los [MediaFile.id] de sus canciones, en orden. */
     var itemIDs: [String]
 }
 
@@ -40,7 +40,7 @@ final class Playlists: ObservableObject {
     func remove(_ itemID: String, from playlist: Playlist) { update(playlist.id) { $0.itemIDs.removeAll { $0 == itemID } } }
 
     /** Las canciones de una playlist que siguen en la biblioteca (las borradas se saltan). */
-    func items(of playlist: Playlist, in library: [LibraryItem]) -> [LibraryItem] {
+    func items(of playlist: Playlist, in library: [MediaFile]) -> [MediaFile] {
         let byID = Dictionary(library.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return playlist.itemIDs.compactMap { byID[$0] }
     }
