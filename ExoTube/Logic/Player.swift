@@ -182,7 +182,7 @@ final class Player: ObservableObject {
     }
 
     private func loadArtwork(for item: PlayItem) async {
-        guard let url = item.thumbnailURL, let (data, _) = try? await URLSession.shared.data(from: url),
+        guard let url = item.thumbnailURL, let data = try? await URLSession.shared.data(from: url).0,
               let image = UIImage(data: data), current == item else { return }
         artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
         updateNowPlaying()

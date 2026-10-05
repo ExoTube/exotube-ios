@@ -12,9 +12,14 @@ struct MediaFile: Identifiable, Codable, Hashable {
     /** El video de YouTube del que vino, si se descargó con ExoTube. */
     let sourceID: String?
     let addedAt: Date
+    /** La miniatura de una publicación de TikTok, Instagram, X o Facebook. */
+    var thumbnail: String? = nil
 
     var fileURL: URL { Library.folder.appendingPathComponent(id) }
-    var thumbnailURL: URL? { sourceID.map { URL(string: "https://i.ytimg.com/vi/\($0)/hqdefault.jpg")! } }
+    var thumbnailURL: URL? {
+        if let thumbnail { return URL(string: thumbnail) }
+        return sourceID.map { URL(string: "https://i.ytimg.com/vi/\($0)/hqdefault.jpg")! }
+    }
 
     static func kind(ofFile name: String) -> Kind? {
         switch (name as NSString).pathExtension.lowercased() {

@@ -20,9 +20,34 @@ targets:
   ExoTube:
     type: application
     platform: iOS
-    sources: [ExoTube]
+    sources:
+      - path: ExoTube
+        excludes: ["Info.plist"]
+      # Python dentro de la app: nuestro puente (app/) y yt-dlp con certifi (app_packages/, lo
+      # instala la compilación con pip). Se copian como carpetas enteras.
+      - path: app
+        type: folder
+        buildPhase: resources
+      - path: app_packages
+        type: folder
+        buildPhase: resources
+        optional: true
     dependencies:
       - package: YouTubeKit
+      # Python para iPhone, de BeeWare (lo descarga la compilación: no se guarda en el repo).
+      - framework: Python.xcframework
+        embed: true
+    postBuildScripts:
+      # Copia la biblioteca estándar de Python y convierte sus módulos binarios en frameworks,
+      # como pide iOS (ver Python.xcframework/build/utils.sh).
+      - name: Process Python libraries
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          # Sin firma (la .ipa la firma cada persona al instalarla): firma provisional "ad-hoc".
+          export EXPANDED_CODE_SIGN_IDENTITY="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          source "$PROJECT_DIR/Python.xcframework/build/utils.sh"
+          install_python Python.xcframework app app_packages
     info:
       path: ExoTube/Info.plist
       properties:
@@ -44,6 +69,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.exotube.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
+        # Lo que pide la guía oficial "Using Python on iOS".
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        FRAMEWORK_SEARCH_PATHS: $(PROJECT_DIR)
+        HEADER_SEARCH_PATHS: "\"$(BUILT_PRODUCTS_DIR)/Python.framework/Headers\""
+        CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER: NO
+        SWIFT_OBJC_BRIDGING_HEADER: ExoTube/Python/ExoTube-Bridging-Header.h
   ExoTubeTests:
     type: bundle.unit-test
     platform: iOS

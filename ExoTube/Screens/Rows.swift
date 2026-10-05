@@ -95,9 +95,9 @@ struct DownloadRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Thumbnail(url: job.video.thumbnailURL, width: 72)
+            Thumbnail(url: job.thumbnailURL, width: 72)
             VStack(alignment: .leading, spacing: 6) {
-                Text(job.video.title).font(.footnote.weight(.medium)).lineLimit(1)
+                Text(job.title).font(.footnote.weight(.medium)).lineLimit(1)
                 switch job.state {
                 case .running:
                     ProgressView(value: job.progress).tint(Exo.green)
@@ -110,7 +110,7 @@ struct DownloadRow: View {
                 }
             }
             if case .failed = job.state {
-                Button("Reintentar") { downloads.start(job.video, as: job.kind) }.font(.caption).buttonStyle(.bordered)
+                Button("Reintentar") { downloads.retry(job) }.font(.caption).buttonStyle(.bordered)
             } else if job.state == .running {
                 Button { downloads.cancel(job) } label: { Image(systemName: "xmark.circle.fill").foregroundColor(Exo.textSecondary) }
                     .buttonStyle(.plain)

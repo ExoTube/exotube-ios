@@ -7,3 +7,7 @@ Payload/
 capturas/
 .DS_Store
 xcuserdata/
+# Python para iPhone y yt-dlp: los descarga la compilación.
+Python.xcframework/
+app_packages/
+*.tar.gz

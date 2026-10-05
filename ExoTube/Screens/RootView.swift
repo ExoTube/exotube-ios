@@ -61,6 +61,13 @@ struct RootView: View {
             downloads.start(OnlineVideo(id: id, title: "Prueba de descarga", channel: "ExoTube", durationSeconds: nil, views: nil), as: .video)
             downloads.start(OnlineVideo(id: id, title: "Prueba de descarga", channel: "ExoTube", durationSeconds: nil, views: nil), as: .audio)
         }
+        if let link = LaunchArguments.value(after: "-descargar-enlace"), let url = URL(string: link) {
+            Task {
+                guard let info = try? await SocialDownloader.info(url) else { return }
+                downloads.start(.link(url, info), as: .video)
+                downloads.start(.link(url, info), as: .audio)
+            }
+        }
     }
 
     /** Cada pestaña lleva debajo el mini reproductor, como en Android. */

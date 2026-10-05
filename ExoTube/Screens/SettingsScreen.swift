@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsScreen: View {
+    @State private var engine = "Cargando…"
     private var version: String {
         let info = Bundle.main.infoDictionary
         return "\(info?["CFBundleShortVersionString"] as? String ?? "?") (\(info?["CFBundleVersion"] as? String ?? "?"))"
@@ -26,12 +27,20 @@ struct SettingsScreen: View {
                 } header: { Text("ExoTube").foregroundColor(Exo.green) }
                 .listRowBackground(Exo.surfaceLow)
 
+                Section {
+                    Label(engine, systemImage: "gearshape.2")
+                } header: { Text("Motor de TikTok, Instagram, X y Facebook").foregroundColor(Exo.green) }
+                .listRowBackground(Exo.surfaceLow)
+
                 Text("ExoTube para iPhone \(version) · gratis, sin anuncios y sin registro")
                     .font(.footnote).foregroundColor(Exo.textSecondary)
                     .listRowBackground(Color.clear)
             }
             .scrollContentBackground(.hidden)
             .background(Exo.black)
+            .task {
+                do { engine = try await SocialDownloader.version() } catch { engine = "No arrancó: \(error.localizedDescription)" }
+            }
         }
     }
 }

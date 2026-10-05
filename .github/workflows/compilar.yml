@@ -18,6 +18,9 @@ jobs:
       APP: io.github.exotube.app
       # Un video corto de prueba (Soda Stereo, "De Música Ligera").
       VIDEO: OX-us7PEfkc
+      # Los mismos enlaces de prueba que en Android (StreamSpeedBenchmark).
+      ENLACE_X: https://x.com/starwars/status/665052190608723968
+      ENLACE_TIKTOK: https://www.tiktok.com/@scout2015/video/6718335390845095173
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +28,16 @@ jobs:
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
           xcodebuild -version
+
+      - name: Python para iPhone y yt-dlp
+        run: |
+          # Python oficial para iOS, empaquetado por BeeWare (python.org lo recomienda).
+          curl -sSL -o python-ios.tar.gz             "https://github.com/beeware/Python-Apple-support/releases/download/3.13-b15/Python-3.13-iOS-support.b15.tar.gz"
+          tar -xzf python-ios.tar.gz Python.xcframework
+          # yt-dlp y certifi son Python puro: sirven igual en el iPhone.
+          python3 -m venv /tmp/pip-env
+          /tmp/pip-env/bin/pip install --quiet --no-deps --target app_packages yt-dlp certifi
+          python3 -c "import sys; sys.path.insert(0, 'app_packages'); import yt_dlp.version as v; print('yt-dlp', v.__version__)"
 
       - name: Generar el proyecto
         run: |
@@ -67,7 +80,13 @@ jobs:
           sleep 90
           xcrun simctl io "$SIM" screenshot capturas/5-descargado.png
           shot 6-biblioteca 8 -tab biblioteca
-          shot 7-ajustes 6 -tab ajustes
+          shot 7-ajustes 15 -tab ajustes
+          # TikTok, Instagram, X y Facebook pasan por yt-dlp (Python dentro de la app).
+          shot 8-enlace-x 30 -tab explorar -buscar "$ENLACE_X"
+          shot 9-enlace-tiktok 30 -tab explorar -buscar "$ENLACE_TIKTOK"
+          shot 10-descargando-enlace 30 -tab biblioteca -descargar-enlace "$ENLACE_X"
+          sleep 60
+          xcrun simctl io "$SIM" screenshot capturas/11-descargado-enlace.png
           # Lo descargado de verdad, para revisarlo.
           DATA=$(xcrun simctl get_app_container "$SIM" "$APP" data)
           ls -la "$DATA/Documents/ExoTube" | tee capturas/archivos.txt

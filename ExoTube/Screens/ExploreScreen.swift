@@ -7,6 +7,8 @@ final class ExploreModel: ObservableObject {
         case loading
         case forYou([OnlineVideo])
         case search([OnlineVideo])
+        /** Se pegó un enlace de TikTok, Instagram, X o Facebook. */
+        case link(URL, LinkSite, SocialInfo?)
         case failed(String)
     }
 
@@ -55,6 +57,7 @@ final class ExploreModel: ObservableObject {
         guard !q.isEmpty else { return }
         query = q
         suggestions = []
+        if let link = LinkSite.detect(q) { await openLink(link.0, link.1); return }
         results = .loading
         do {
             let page = try await client.search(q)
@@ -63,6 +66,39 @@ final class ExploreModel: ObservableObject {
         } catch {
             results = .failed(error.localizedDescription)
         }
+    }
+
+    /**
+     * Un enlace pegado en el buscador. Si es de YouTube, se muestra como un resultado más; si es
+     * de otra red, yt-dlp lee la publicación (título, autor, miniatura) para enseñarla antes de
+     * descargar.
+     */
+    private func openLink(_ url: URL, _ site: LinkSite) async {
+        if case .youtube(let id) = site {
+            results = .loading
+            let video = await youTubeVideo(id: id, url: url)
+            continuation = nil
+            results = .search([video])
+            return
+        }
+        results = .link(url, site, nil)
+        do {
+            results = .link(url, site, try await SocialDownloader.info(url))
+        } catch {
+            results = .failed(error.localizedDescription)
+        }
+    }
+
+    /** Título y canal de un video de YouTube por su enlace (oEmbed, público y rápido). */
+    private func youTubeVideo(id: String, url: URL) async -> OnlineVideo {
+        var oembed = URLComponents(string: "https://www.youtube.com/oembed")!
+        oembed.queryItems = [.init(name: "url", value: "https://www.youtube.com/watch?v=\(id)"), .init(name: "format", value: "json")]
+        if let data = try? await URLSession.shared.data(from: oembed.url!).0,
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return OnlineVideo(id: id, title: json["title"] as? String ?? "Video de YouTube",
+                               channel: json["author_name"] as? String ?? "", durationSeconds: nil, views: nil)
+        }
+        return OnlineVideo(id: id, title: "Video de YouTube", channel: "", durationSeconds: nil, views: nil)
     }
 
     func loadMore() async {
@@ -136,6 +172,8 @@ struct ExploreScreen: View {
             } header: {
                 Text("Para ti").font(.headline).foregroundColor(Exo.green)
             }
+        case .link(let url, let site, let info):
+            LinkCard(url: url, site: site, info: info).listRowBackground(Color.clear)
         case .search(let videos):
             if videos.isEmpty {
                 EmptyState(icon: "magnifyingglass", text: "No se encontró nada con «\(model.query)».")
@@ -156,5 +194,52 @@ struct ExploreScreen: View {
             .listRowBackground(Color.clear)
             .onAppear { if i == videos.count - 3 { Task { await model.loadMore() } } }
         }
+    }
+}
+
+/** Una publicación de TikTok, Instagram, X o Facebook lista para descargar. */
+struct LinkCard: View {
+    let url: URL
+    let site: LinkSite
+    let info: SocialInfo?
+    @EnvironmentObject private var downloads: Downloads
+    @State private var started: MediaFile.Kind?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Enlace de \(site.name)", systemImage: "link").font(.subheadline.weight(.semibold)).foregroundColor(Exo.green)
+            if let info {
+                HStack(alignment: .top, spacing: 12) {
+                    Thumbnail(url: info.thumbnail.flatMap(URL.init(string:)), duration: info.duration.map { Int($0) }, icon: "film")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(info.title).font(.subheadline.weight(.medium)).lineLimit(3)
+                        Text(info.uploader).font(.caption).foregroundColor(Exo.textSecondary).lineLimit(1)
+                    }
+                }
+                if let started {
+                    Label(started == .video ? "Descargando el video… míralo en la Biblioteca" : "Descargando la música… mírala en la Biblioteca",
+                          systemImage: "checkmark.circle").font(.footnote).foregroundColor(Exo.green)
+                } else {
+                    HStack {
+                        Button { start(.video) } label: { Label("Video", systemImage: "film") }.buttonStyle(.borderedProminent)
+                        Button { start(.audio) } label: { Label("Música", systemImage: "music.note") }.buttonStyle(.bordered)
+                    }
+                    .tint(Exo.green)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    ProgressView().tint(Exo.green)
+                    Text("Leyendo la publicación…").font(.footnote).foregroundColor(Exo.textSecondary)
+                }
+            }
+        }
+        .padding(14)
+        .background(Exo.surfaceHigh, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func start(_ kind: MediaFile.Kind) {
+        guard let info else { return }
+        downloads.start(.link(url, info), as: kind)
+        started = kind
     }
 }
