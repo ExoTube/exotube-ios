@@ -39,6 +39,16 @@ jobs:
           /tmp/pip-env/bin/pip install --quiet --no-deps --target app_packages yt-dlp certifi
           python3 -c "import sys; sys.path.insert(0, 'app_packages'); import yt_dlp.version as v; print('yt-dlp', v.__version__)"
 
+      - name: Diagnóstico: ¿YouTube deja descargar desde esta Mac?
+        continue-on-error: true
+        run: |
+          # Si YouTube bloquea las Macs de GitHub (centros de datos), aquí se ve: así se sabe si un
+          # fallo de descarga es de la app o solo de este entorno de pruebas.
+          /tmp/pip-env/bin/pip install --quiet yt-dlp
+          /tmp/pip-env/bin/yt-dlp --no-warnings -F "https://www.youtube.com/watch?v=$VIDEO" 2>&1 | tail -15
+          /tmp/pip-env/bin/yt-dlp --no-warnings -F "$ENLACE_X" 2>&1 | tail -6
+          /tmp/pip-env/bin/yt-dlp --no-warnings -F "$ENLACE_TIKTOK" 2>&1 | tail -6
+
       - name: Generar el proyecto
         run: |
           brew install xcodegen
